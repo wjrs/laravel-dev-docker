@@ -1,0 +1,59 @@
+version: '3.9'
+
+services:
+  app:
+    hostname: app
+    container_name: app
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    working_dir: /var/www/src
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - database
+      - cache
+    networks:
+      - netapp
+
+  database:
+    image: mariadb:latest
+    hostname: database
+    container_name: "database"
+    environment:
+      - "MARIADB_ROOT_PASSWORD=root"
+      - "MARIADB_DATABASE=development"
+      - "MARIADB_USER: root"
+      - "MARIADB_PASSWORD: root"
+      - "TZ=America/Sao_Paulo"
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./.docker/dbdata:/var/lib/mysql
+    networks:
+      - netapp
+
+  web:
+    image: nginx:alpine
+    container_name: web
+    restart: unless-stopped
+    ports:
+      - 8080:80
+    volumes:
+      - ./:/var/www
+      - ./docker-scripts/nginx:/etc/nginx/conf.d
+    networks:
+      - netapp
+
+  cache:
+    image: redis:latest
+    hostname: cache
+    container_name: cache
+    ports:
+      - '6379:6379'
+    networks:
+      - netapp
+
+networks:
+  netapp:
+    driver: bridge
